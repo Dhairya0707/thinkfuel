@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../../../service/firebase.config";
+import { db } from "../../../../../service/firebase.config";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
