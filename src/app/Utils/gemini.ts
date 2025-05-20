@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize the Gemini API with your API key
-const genAI = new GoogleGenerativeAI("AIzaSyDMVDpZW6ytIFHfr-BCET7JQvWcs6ETDyI");
+const genAI = new GoogleGenerativeAI("your_key here");
 
 // System prompt for idea generation
 // const IDEA_GENERATION_PROMPT = `You are an expert idea generator and business consultant. Your task is to generate detailed, innovative business ideas based on the given area and subcategory.
