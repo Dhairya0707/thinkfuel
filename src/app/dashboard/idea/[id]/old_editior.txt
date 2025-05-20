@@ -1,0 +1,1051 @@
+"use client";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  appendCodeBlockEditorDescriptor$,
+  BlockTypeSelect,
+  BoldItalicUnderlineToggles,
+  codeBlockEditorDescriptors$,
+  codeBlockPlugin,
+  codeMirrorPlugin,
+  CodeToggle,
+  headingsPlugin,
+  imagePlugin,
+  InsertImage,
+  linkPlugin,
+  listsPlugin,
+  ListsToggle,
+  markdownShortcutPlugin,
+  MDXEditorMethods,
+  quotePlugin,
+  tablePlugin,
+  thematicBreakPlugin,
+  toolbarPlugin,
+} from "@mdxeditor/editor";
+import { ChevronLeft, Download, MoreVertical, Share2 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { content } from "./markdonwcontent";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { auth, db } from "../../../../service/firebase.config";
+import { toast } from "sonner";
+
+const MDXEditor = dynamic(
+  () => import("@mdxeditor/editor").then((mod) => mod.MDXEditor),
+  { ssr: false }
+);
+
+export default function Page() {
+  const params = useParams();
+  // const id = params?.id;
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [ideaData, setIdeaData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [title, settitle] = useState<string>("");
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
+  const [markdown, setMarkdown] = useState<string>("");
+
+  useEffect(() => {
+    setLoading(true); // ✅ Set loading true first
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (!authUser) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const userDocRef = doc(db, "users", authUser.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (!userSnap.exists()) {
+          toast.error("User not found");
+          router.replace("/login");
+          return;
+        }
+
+        setUser({
+          auth: authUser,
+          firestore: userSnap.data(),
+        });
+
+        // ✅ Now fetch the idea document
+        if (id) {
+          const ideaDocRef = doc(db, "ideas", id);
+          const ideaSnap = await getDoc(ideaDocRef);
+
+          if (!ideaSnap.exists()) {
+            toast.error("Idea not found");
+            router.replace("/404");
+            return;
+          }
+
+          const ideaDataCurrent = ideaSnap.data();
+
+          // ✅ Check owner ID
+          if (ideaDataCurrent.ownerId !== authUser.uid) {
+            toast.error("Unauthorized access");
+            router.replace("/unauthorized");
+            return;
+          }
+          // console.log(ideaDataCurrent);
+          // console.log(ideaDataCurrent.body);
+          // editorRef.current?.setMarkdown(ideaDataCurrent.body);
+          setMarkdown(ideaDataCurrent.body);
+
+          settitle(ideaDataCurrent.title);
+          toast("note loadded");
+
+          // setbody(ideaDataCurrent.body ?? "");
+          // console.log(title);
+          // console.log(body);
+        } else {
+          toast.error("Invalid idea ID");
+          router.replace("/404");
+        }
+      } catch (error) {
+        console.error("Error during auth/idea fetch:", error);
+        toast.error("Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [id, router]);
+
+  useEffect(() => {
+    const wrapper = editorWrapperRef.current;
+    if (!wrapper) return;
+    // Find the contentEditable inside the editor
+    const editable = wrapper.querySelector('[contenteditable="true"]');
+    if (!editable) return;
+
+    const handleNativeInput = (e: Event) => {
+      console.log("Native DOM input event triggered");
+    };
+
+    editable.addEventListener("input", handleNativeInput);
+
+    return () => {
+      editable.removeEventListener("input", handleNativeInput);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        console.log(editorWrapperRef.current?.ariaValueMax);
+        // updateIdeaDoc(markdown, title);
+        toast("Note saved (Ctrl+S)");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [title, markdown]);
+
+  const updateIdeaDoc = async (body: string, heading: string) => {
+    try {
+      console.log(body);
+      if (id) {
+        const docRef = doc(db, "ideas", id);
+
+        await updateDoc(docRef, {
+          title: heading,
+          body: body,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      console.log("saved note");
+    } catch (error) {
+      console.error("Failed to update idea:", error);
+      toast.error("Failed to update idea");
+    }
+  };
+
+  // React onChange
+  const handleEditorChange = (newMarkdown: string) => {
+    console.log("triggred");
+    setMarkdown(newMarkdown);
+    updateIdeaDoc(newMarkdown, title);
+  };
+
+  const chnageTitle = (newTitle: string) => {
+    settitle(newTitle);
+    updateIdeaDoc(markdown, newTitle);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      </div>
+    );
+  }
+
+  // if (!markdown) {
+  //   return (
+  //     <div className="flex h-screen w-full items-center justify-center">
+  //       <div className="h-6 w-6 animate-spin rounded-full border-4 border-muted border-t-primary" />
+  //     </div>
+  //   );
+  // }
+
+  return (
+    <div className="flex flex-col h-screen">
+      <header className="flex h-16 shrink-0 items-center border-b justify-between gap-2 px-2 sm:px-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-muted"
+            onClick={async () => {}}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
+          <Separator
+            orientation="vertical"
+            className="mx-2 data-[orientation=vertical]:h-4"
+          />
+          <span className="truncate font-medium">
+            <input
+              value={title ?? ""}
+              onChange={(e: any) => {
+                settitle(e.target.value);
+                chnageTitle(e.target.value);
+              }}
+              className="flex-1 font-bold text-lg sm:text-xl border-none outline-none focus:outline-none focus:border-none bg-transparent"
+              placeholder="Enter Title"
+            />
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="hover:bg-muted">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <Share2 className="mr-2 h-4 w-4" />
+                <span>Share</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Download className="mr-2 h-4 w-4" />
+                <span>Download</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      <main className="flex-1 ">
+        <div className="h-full   p-2 sm:p-4">
+          <div
+            ref={editorWrapperRef}
+            className="editor-container h-full bg-card rounded-lg shadow-lg overflow-hidden flex flex-col"
+          >
+            <MDXEditor
+              // placeholder="start your idea note form here...."
+              key="editor"
+              className="prose"
+              markdown={markdown}
+              onChange={handleEditorChange}
+              plugins={[
+                headingsPlugin({
+                  allowedHeadingLevels: [1, 2, 3],
+                }),
+                listsPlugin(),
+                quotePlugin(),
+                linkPlugin(),
+                markdownShortcutPlugin(),
+                codeMirrorPlugin(),
+                thematicBreakPlugin(),
+                imagePlugin(),
+                tablePlugin(),
+              ]}
+              // ref={editorRef}
+              contentEditableClassName="outline-none  min-h-full max-w-none text-base px-3 sm:px-8 py-4 sm:py-5 prose prose-invert max-w-none overflow-y-auto"
+            />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+export const content = `Okay, here's a little Markdown demo, just how you'd naturally use it:
+
+Imagine you're jotting down some quick notes after a really interesting meeting about a new project.
+
+### Project "Starlight" - Key Takeaways
+
+---
+
+We had a great discussion about the initial phases of Project *Starlight*.
+
+* **Main Goal:** To develop a user-friendly mobile application for stargazers.
+* **Key Features Discussed:**
+    * Real-time constellation identification
+    * A searchable database of celestial objects
+    * Night sky visibility forecasts
+
+The team agreed that the initial design should focus on simplicity and ease of use. We'll be using a **bright and intuitive** color palette.
+
+> "I'm really excited about the potential of this project!" - Sarah, Lead Designer
+
+Next steps include finalizing the wireframes and starting on the user interface mockups. We're aiming to have the first draft ready by the end of next week.
+
+It feels like we're off to a good start! ✨`;
+
+
+
+
+
+
+
+
+----latest ediitor------
+
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  ChevronLeft,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Code,
+  Quote,
+  Heading1,
+  Heading2,
+  Heading3,
+  Undo,
+  Redo,
+  Link,
+  Image as ImageIcon,
+  UnderlineIcon,
+  Moon,
+  Sun,
+  MoreHorizontal,
+  Info,
+} from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { useEffect, useState } from "react";
+import { TextAlign } from "@tiptap/extension-text-align";
+import { Underline } from "@tiptap/extension-underline";
+import { Image } from "@tiptap/extension-image";
+import { Link as TiptapLink } from "@tiptap/extension-link";
+import { useTheme } from "next-themes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../../../service/firebase.config";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+// Update the editor styles
+const editorStyles = `
+  .ProseMirror {
+    outline: none !important;
+    border: none !important;
+    min-height: 100%;
+  }
+  .ProseMirror:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .ProseMirror p {
+    margin: 0;
+  }
+  @media (max-width: 640px) {
+    .ProseMirror {
+      font-size: 16px;
+      padding: 0.5rem !important;
+    }
+    .ProseMirror h1 {
+      font-size: 1.5em;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    .ProseMirror h2 {
+      font-size: 1.3em;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    .ProseMirror h3 {
+      font-size: 1.1em;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    .ProseMirror ul, .ProseMirror ol {
+      padding-left: 1.2em;
+      margin: 0.5em 0;
+    }
+    .ProseMirror blockquote {
+      margin: 0.5em 0;
+      padding-left: 1em;
+    }
+    .ProseMirror pre {
+      margin: 0.5em 0;
+      padding: 0.5em;
+    }
+  }
+`;
+
+export default function Page() {
+  const router = useRouter();
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const [user, setUser] = useState<any>(null);
+  const [ideaData, setIdeaData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState("Demo Document");
+  const { theme, setTheme } = useTheme();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [lastSavedContent, setLastSavedContent] = useState("");
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      Underline,
+      Image,
+      TiptapLink.configure({
+        openOnClick: false,
+      }),
+    ],
+    content: "",
+    onUpdate: ({ editor }) => {
+      const content = editor.getHTML();
+      // Only save if content has actually changed and we're not in initial load
+      if (content !== lastSavedContent && !isInitialLoad) {
+        updateIdeaDoc(content, title);
+      }
+    },
+  });
+
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (!authUser) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const userDocRef = doc(db, "users", authUser.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (!userSnap.exists()) {
+          toast.error("User not found");
+          router.replace("/login");
+          return;
+        }
+
+        setUser({
+          auth: authUser,
+          firestore: userSnap.data(),
+        });
+
+        // Fetch the idea document
+        if (id) {
+          const ideaDocRef = doc(db, "ideas", id);
+          const ideaSnap = await getDoc(ideaDocRef);
+
+          if (!ideaSnap.exists()) {
+            toast.error("Idea not found");
+            router.replace("/404");
+            return;
+          }
+
+          const ideaDataCurrent = ideaSnap.data();
+
+          // Check owner ID
+          if (ideaDataCurrent.ownerId !== authUser.uid) {
+            toast.error("Unauthorized access");
+            router.replace("/unauthorized");
+            return;
+          }
+
+          setIdeaData(ideaDataCurrent);
+          setTitle(ideaDataCurrent.title);
+          const content = ideaDataCurrent.body || "";
+          editor?.commands.setContent(content);
+          setLastSavedContent(content);
+          toast.success("Note loaded");
+        } else {
+          toast.error("Invalid idea ID");
+          router.replace("/404");
+        }
+      } catch (error) {
+        console.error("Error during auth/idea fetch:", error);
+        toast.error("Something went wrong");
+      } finally {
+        setLoading(false);
+        // Set initial load to false after data is loaded
+        setIsInitialLoad(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [id, router, editor]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        const content = editor?.getHTML() || "";
+        // if (content !== lastSavedContent) {
+        updateIdeaDoc(content, title);
+        toast("Note saved (Ctrl+S)");
+        // }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editor, title, lastSavedContent]);
+
+  const updateIdeaDoc = async (body: string, heading: string) => {
+    try {
+      if (id) {
+        const docRef = doc(db, "ideas", id);
+        await updateDoc(docRef, {
+          title: heading,
+          body: body,
+          updatedAt: serverTimestamp(),
+        });
+        setLastSavedContent(body);
+        // toast.success("Note saved");
+      }
+    } catch (error) {
+      console.error("Failed to update idea:", error);
+      toast.error("Failed to update idea");
+    }
+  };
+
+  // Add debounced title update
+  useEffect(() => {
+    if (isInitialLoad) return;
+
+    const timeoutId = setTimeout(() => {
+      if (title !== ideaData?.title) {
+        updateIdeaDoc(editor?.getHTML() || "", title);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [title, isInitialLoad, ideaData?.title]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 800);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    // Add the custom styles to the document
+    const styleElement = document.createElement("style");
+    styleElement.textContent = editorStyles;
+    document.head.appendChild(styleElement);
+
+    // Cleanup
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
+  const renderToolbar = () => {
+    if (isMobile) {
+      return (
+        <div className="border-b p-2 flex flex-wrap gap-2">
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor?.chain().focus().undo().run()}
+              disabled={!editor?.can().undo()}
+            >
+              <Undo className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor?.chain().focus().redo().run()}
+              disabled={!editor?.can().redo()}
+            >
+              <Redo className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Separator orientation="vertical" className="mx-1" />
+
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+              className={editor?.isActive("bold") ? "bg-muted" : ""}
+            >
+              <Bold className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+              className={editor?.isActive("italic") ? "bg-muted" : ""}
+            >
+              <Italic className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor?.chain().focus().toggleUnderline().run()}
+              className={editor?.isActive("underline") ? "bg-muted" : ""}
+            >
+              <UnderlineIcon className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Separator orientation="vertical" className="mx-1" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={() =>
+                  editor?.chain().focus().toggleHeading({ level: 1 }).run()
+                }
+              >
+                <Heading1 className="h-4 w-4 mr-2" />
+                <span>Heading 1</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  editor?.chain().focus().toggleHeading({ level: 2 }).run()
+                }
+              >
+                <Heading2 className="h-4 w-4 mr-2" />
+                <span>Heading 2</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  editor?.chain().focus().toggleHeading({ level: 3 }).run()
+                }
+              >
+                <Heading3 className="h-4 w-4 mr-2" />
+                <span>Heading 3</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+              >
+                <List className="h-4 w-4 mr-2" />
+                <span>Bullet List</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  editor?.chain().focus().toggleOrderedList().run()
+                }
+              >
+                <ListOrdered className="h-4 w-4 mr-2" />
+                <span>Numbered List</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+              >
+                <Quote className="h-4 w-4 mr-2" />
+                <span>Quote</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+              >
+                <Code className="h-4 w-4 mr-2" />
+                <span>Code Block</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const url = window.prompt("Enter the URL");
+                  if (url) {
+                    editor?.chain().focus().setLink({ href: url }).run();
+                  }
+                }}
+              >
+                <Link className="h-4 w-4 mr-2" />
+                <span>Add Link</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const url = window.prompt("Enter the image URL");
+                  if (url) {
+                    editor?.chain().focus().setImage({ src: url }).run();
+                  }
+                }}
+              >
+                <ImageIcon className="h-4 w-4 mr-2" />
+                <span>Add Image</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+    }
+
+    return (
+      <div className="border-b p-2 flex flex-wrap gap-2">
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().undo().run()}
+            disabled={!editor?.can().undo()}
+          >
+            <Undo className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().redo().run()}
+            disabled={!editor?.can().redo()}
+          >
+            <Redo className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="mx-1" />
+
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 1 }).run()
+            }
+            className={
+              editor?.isActive("heading", { level: 1 }) ? "bg-muted" : ""
+            }
+          >
+            <Heading1 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            className={
+              editor?.isActive("heading", { level: 2 }) ? "bg-muted" : ""
+            }
+          >
+            <Heading2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              editor?.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+            className={
+              editor?.isActive("heading", { level: 3 }) ? "bg-muted" : ""
+            }
+          >
+            <Heading3 className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="mx-1" />
+
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+            className={editor?.isActive("bold") ? "bg-muted" : ""}
+          >
+            <Bold className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+            className={editor?.isActive("italic") ? "bg-muted" : ""}
+          >
+            <Italic className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleUnderline().run()}
+            className={editor?.isActive("underline") ? "bg-muted" : ""}
+          >
+            <UnderlineIcon className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="mx-1" />
+
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            className={editor?.isActive("bulletList") ? "bg-muted" : ""}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            className={editor?.isActive("orderedList") ? "bg-muted" : ""}
+          >
+            <ListOrdered className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            className={editor?.isActive("blockquote") ? "bg-muted" : ""}
+          >
+            <Quote className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+            className={editor?.isActive("codeBlock") ? "bg-muted" : ""}
+          >
+            <Code className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="mx-1" />
+
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+            className={
+              editor?.isActive({ textAlign: "left" }) ? "bg-muted" : ""
+            }
+          >
+            <AlignLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+            className={
+              editor?.isActive({ textAlign: "center" }) ? "bg-muted" : ""
+            }
+          >
+            <AlignCenter className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+            className={
+              editor?.isActive({ textAlign: "right" }) ? "bg-muted" : ""
+            }
+          >
+            <AlignRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="mx-1" />
+
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const url = window.prompt("Enter the URL");
+              if (url) {
+                editor?.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+            className={editor?.isActive("link") ? "bg-muted" : ""}
+          >
+            <Link className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const url = window.prompt("Enter the image URL");
+              if (url) {
+                editor?.chain().focus().setImage({ src: url }).run();
+              }
+            }}
+          >
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-background">
+      <header className="flex h-16 shrink-0 items-center border-b justify-between gap-2 px-2 sm:px-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-muted"
+            onClick={() => router.back()}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
+          <Separator
+            orientation="vertical"
+            className="mx-2 data-[orientation=vertical]:h-4"
+          />
+          <span className="truncate font-medium">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="flex-1 font-bold text-lg sm:text-xl border-none outline-none focus:outline-none focus:border-none bg-transparent"
+              placeholder="Enter Title"
+            />
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="hover:bg-muted">
+                <Info className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Editor Features</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Auto-Save</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Your changes are automatically saved as you type. No need to
+                    worry about losing your work!
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Manual Save</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Press Ctrl+S (or Cmd+S on Mac) to manually save your
+                    document at any time.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Rich Text Formatting</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Use the toolbar to format your text with:
+                    <ul className="list-disc pl-4 mt-1">
+                      <li>Headings (H1, H2, H3)</li>
+                      <li>Bold, Italic, Underline</li>
+                      <li>Bullet and numbered lists</li>
+                      <li>Blockquotes and code blocks</li>
+                      <li>Text alignment</li>
+                      <li>Links and images</li>
+                    </ul>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Mobile Support</h4>
+                  <p className="text-sm text-muted-foreground">
+                    The editor is fully responsive and works great on mobile
+                    devices. The toolbar adapts to smaller screens for better
+                    usability.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Theme Support</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Toggle between light and dark themes using the theme button
+                    in the top-right corner.
+                  </p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="hover:bg-muted"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      </header>
+
+      <main className="flex-1 border-2 border-amber-800 overflow-hidden w-100vh">
+        <div className="h-full w-full p-1 sm:p-2 md:p-4">
+          <div className="h-full w-full bg-card rounded-lg shadow-lg overflow-hidden flex flex-col">
+            {renderToolbar()}
+            <div className="flex-1 overflow-y-auto w-full">
+              <EditorContent
+                editor={editor}
+                className="h-full prose prose-invert max-w-none px-2 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6"
+              />
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

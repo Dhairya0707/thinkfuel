@@ -1,0 +1,39 @@
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { db } from "../../../../service/firebase.config";
+import { toast } from "sonner";
+import { title } from "process";
+
+export async function createIdea(
+  ideaData: {
+    title: string;
+    body: string;
+    tags?: string[];
+    visibility: "public" | "private";
+  },
+  userId?: string
+) {
+  try {
+    // toast(
+    //   `title : ${ideaData.title}, type : ${ideaData.visibility} , uid : ${userId}`
+    // );
+    const ideaDocRef = doc(collection(db, "ideas"));
+
+    const data = {
+      id: ideaDocRef.id,
+      title: ideaData.title,
+      body: ideaData.body,
+      tags: ideaData.tags || [],
+      visibility: ideaData.visibility,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ownerId: userId,
+    };
+
+    await setDoc(ideaDocRef, data);
+    toast.success("Idea Created success !");
+    toast.success(`Idea id : ${ideaDocRef.id} `);
+    return ideaDocRef.id;
+  } catch (error) {
+    toast.error(`Something went wrong, Try again : ${error} `);
+  }
+}
