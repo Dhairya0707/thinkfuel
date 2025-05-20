@@ -61,7 +61,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI("AIzaSyDMVDpZW6ytIFHfr-BCET7JQvWcs6ETDyI");
+const genAI = new GoogleGenerativeAI("yourkey");
 
 interface Message {
   role: "user" | "assistant";
