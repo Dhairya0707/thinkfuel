@@ -19,6 +19,8 @@ import {
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../service/firebase.config";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { trackVisitor } from "@/services/visitors";
 
 const GradientCursor = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -181,9 +183,19 @@ const TestimonialCard = ({
 export default function ThinkFuelLanding() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const router = useRouter();
 
-  const loginpage = () => {};
-  const signuppage = () => {};
+  useEffect(() => {
+    // Track visitor when page loads
+    trackVisitor();
+  }, []);
+
+  const loginpage = () => {
+    router.push("/login");
+  };
+  const signuppage = () => {
+    router.push("/signup");
+  };
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();

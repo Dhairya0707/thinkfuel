@@ -682,11 +682,11 @@ export default function Page() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="flex h-16 shrink-0 items-center border-b justify-between gap-2 px-2 sm:px-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <Button
             variant="ghost"
             size="icon"
-            className="hover:bg-muted"
+            className="hover:bg-muted shrink-0"
             onClick={() => router.back()}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -694,19 +694,19 @@ export default function Page() {
 
           <Separator
             orientation="vertical"
-            className="mx-2 data-[orientation=vertical]:h-4"
+            className="mx-2 data-[orientation=vertical]:h-4 shrink-0"
           />
-          <span className="truncate font-medium">
+          <div className="flex-1 min-w-0">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="flex-1 font-bold text-lg sm:text-xl border-none outline-none focus:outline-none focus:border-none bg-transparent"
+              className="w-full font-bold text-lg sm:text-xl border-none outline-none focus:outline-none focus:border-none bg-transparent"
               placeholder="Enter Title"
             />
-          </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-muted">
