@@ -82,12 +82,12 @@ export function LoginForm({
           createdAt: new Date().toISOString(),
         });
 
-        router.push("/");
+        router.push("/dashboard");
       } else {
         toast.success("Login successful", {
           description: `Welcome back, ${user.displayName || "User"}!`,
         });
-        router.push("/");
+        router.push("/dashboard");
       }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
