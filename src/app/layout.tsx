@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "./authcontext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,19 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        {/* <link
-          rel="preload"
-          href="/_next/static/chunks/webpack.js"
-          as="script"
-        /> */}
-        {/* <link rel="preload" href="/_next/static/chunks/main.js" as="script" /> */}
-        {/* <link
-          rel="preload"
-          href="/_next/static/chunks/pages/_app.js"
-          as="script"
-        /> */}
-      </head>
+      <head></head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

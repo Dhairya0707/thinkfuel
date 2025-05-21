@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -41,21 +41,13 @@ import {
   Palette,
   Type,
   MessageSquare,
-  Image as ImageIcon,
   Layout,
-  Download,
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { apikey } from "@/app/Utils/gemini";
 
-// Initialize Gemini
 const genAI = new GoogleGenerativeAI(apikey);
 
 interface Idea {
@@ -310,44 +302,45 @@ Focus on creating a cohesive, modern, and professional brand identity that align
 
   const handleDownloadReport = async () => {
     try {
-      const element = document.getElementById("brand-kit-content");
-      if (!element) return;
+      // const element = document.getElementById("brand-kit-content");
+      // if (!element) return;
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+      // const canvas = await html2canvas(element, {
+      //   scale: 2,
+      //   useCORS: true,
+      //   logging: false,
+      // });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+      // const imgData = canvas.toDataURL("image/png");
+      // const pdf = new jsPDF({
+      //   orientation: "portrait",
+      //   unit: "mm",
+      //   format: "a4",
+      // });
 
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let position = 0;
+      // const imgWidth = 210; // A4 width in mm
+      // const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // let position = 0;
 
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      // pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
 
-      // Add title page
-      pdf.insertPage(1);
-      pdf.setFontSize(24);
-      pdf.text("Brand Kit Report", 105, 50, { align: "center" });
-      pdf.setFontSize(16);
-      pdf.text(brandKit?.name || "", 105, 60, { align: "center" });
-      pdf.setFontSize(12);
-      pdf.text(brandKit?.tagline || "", 105, 70, { align: "center" });
-      pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 80, {
-        align: "center",
-      });
+      // // Add title page
+      // pdf.insertPage(1);
+      // pdf.setFontSize(24);
+      // pdf.text("Brand Kit Report", 105, 50, { align: "center" });
+      // pdf.setFontSize(16);
+      // pdf.text(brandKit?.name || "", 105, 60, { align: "center" });
+      // pdf.setFontSize(12);
+      // pdf.text(brandKit?.tagline || "", 105, 70, { align: "center" });
+      // pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 80, {
+      //   align: "center",
+      // });
 
-      pdf.save(
-        `${brandKit?.name.toLowerCase().replace(/\s+/g, "-")}-brand-kit.pdf`
-      );
-      toast.success("Brand kit report downloaded successfully");
+      // pdf.save(
+      //   `${brandKit?.name.toLowerCase().replace(/\s+/g, "-")}-brand-kit.pdf`
+      // );
+      toast.error("Failed to generate PDF report");
+      // toast.success("Brand kit report downloaded successfully");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF report");

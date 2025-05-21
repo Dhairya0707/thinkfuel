@@ -1,7 +1,6 @@
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../../../service/firebase.config";
 import { toast } from "sonner";
-import { title } from "process";
 
 export async function createIdea(
   ideaData: {
@@ -13,9 +12,6 @@ export async function createIdea(
   userId?: string
 ) {
   try {
-    // toast(
-    //   `title : ${ideaData.title}, type : ${ideaData.visibility} , uid : ${userId}`
-    // );
     const ideaDocRef = doc(collection(db, "ideas"));
 
     const data = {

@@ -36,7 +36,6 @@ import {
   Loader2,
   Send,
   ArrowLeft,
-  Bot,
   User,
   MessageSquare,
   Sparkles,

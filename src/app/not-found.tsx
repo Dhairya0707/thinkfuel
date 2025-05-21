@@ -1,15 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Home, ArrowLeft, Search, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 export default function NotFound() {
   const router = useRouter();
-  const { theme } = useTheme();
+
   const [isHovered, setIsHovered] = useState(false);
 
   return (

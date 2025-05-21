@@ -10,7 +10,7 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { toast } from "sonner";
 import { auth } from "../../service/firebase.config";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth"; // Make sure you have the Firebase config set up
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../service/firebase.config";
 
