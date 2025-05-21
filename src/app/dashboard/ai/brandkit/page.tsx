@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -116,6 +116,23 @@ interface BrandKit {
 }
 
 export default function BrandKit() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center bg-muted/10">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <BrandKitContent />
+    </Suspense>
+  );
+}
+
+function BrandKitContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();

@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Separator } from "@/components/ui/separator";
+import { Suspense } from "react";
 import {
   doc,
   getDoc,
@@ -77,6 +78,23 @@ interface Idea {
 }
 
 export default function IdeaChat() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center bg-muted/10">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <IdeaChatContent />
+    </Suspense>
+  );
+}
+
+function IdeaChatContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
