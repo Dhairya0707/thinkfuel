@@ -67,6 +67,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createIdea } from "../Utils/function/createidea";
+import "dotenv/config";
+
+require("dotenv").config();
 
 interface Idea {
   id: string;
@@ -189,7 +192,17 @@ export default function Page() {
               orientation="vertical"
               className="mr-0 data-[orientation=vertical]:h-4"
             />
-            <span className="truncate font-medium">My Ideas</span>
+            <span
+              className="truncate font-medium"
+              // onClick={async () => {
+              //   console.log(process.env.NEXT_PUBLIC_TEST_MESSAGE);
+              // }}
+            >
+              Dashboard
+            </span>
+            {/* <div className="text-sm text-muted-foreground">
+              {process.env.NEXT_PUBLIC_TEST_MESSAGE}
+            </div> */}
           </div>
           <div className="flex items-center gap-2 px-4">
             <Button

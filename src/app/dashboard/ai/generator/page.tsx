@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { generateIdeas } from "@/app/Utils/gemini";
+import { apikey, generateIdeas } from "@/app/Utils/gemini";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -164,6 +164,7 @@ export default function IdeaGenerator() {
       toast.error("Please select an area and subcategory");
       return;
     }
+    console.log(apikey);
 
     setGenerating(true);
     try {

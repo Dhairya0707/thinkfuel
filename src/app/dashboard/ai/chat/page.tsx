@@ -59,9 +59,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { apikey } from "@/app/Utils/gemini";
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI("AIzaSyDMVDpZW6ytIFHfr-BCET7JQvWcs6ETDyI");
+const genAI = new GoogleGenerativeAI(apikey);
 
 interface Message {
   role: "user" | "assistant";

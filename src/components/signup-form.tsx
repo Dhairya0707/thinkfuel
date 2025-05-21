@@ -66,7 +66,7 @@ export function SignupForm() {
         description: `Welcome, ${name}!`,
       });
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (error: any) {
       toast.error("Signup failed", {
         description: error.message || "Something went wrong. Try again later.",

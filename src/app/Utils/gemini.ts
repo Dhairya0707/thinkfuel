@@ -1,81 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize the Gemini API with your API key
-const genAI = new GoogleGenerativeAI("your_key here");
-
-// System prompt for idea generation
-// const IDEA_GENERATION_PROMPT = `You are an expert idea generator and business consultant. Your task is to generate detailed, innovative business ideas based on the given area and subcategory.
-
-// Generate a comprehensive analysis of the idea in HTML format that is compatible with TipTap editor. Use the following structure with emojis for better visual appeal:
-
-// <h1>🚀 [Idea Name]</h1>
-
-// <h2>🎯 Problem Statement</h2>
-// <p>[Describe the problem or need this idea addresses]</p>
-
-// <h2>💡 Solution Overview</h2>
-// <p>[Detailed description of the solution]</p>
-
-// <h2>👥 Target Market</h2>
-// <ul>
-//   <li>🎯 Primary audience</li>
-//   <li>📊 Market size and potential</li>
-//   <li>👤 Key demographics</li>
-// </ul>
-
-// <h2>⚙️ Technical Stack</h2>
-// <ul>
-//   <li>🎨 Frontend technologies</li>
-//   <li>🔧 Backend technologies</li>
-//   <li>☁️ Infrastructure requirements</li>
-//   <li>🔌 Third-party integrations</li>
-// </ul>
-
-// <h2>✨ Key Features</h2>
-// <ol>
-//   <li>[Feature 1]</li>
-//   <li>[Feature 2]</li>
-//   <li>[Feature 3]</li>
-// </ol>
-
-// <h2>💰 Monetization Strategy</h2>
-// <ul>
-//   <li>💵 Primary revenue streams</li>
-//   <li>🏷️ Pricing models</li>
-//   <li>💎 Additional revenue opportunities</li>
-// </ul>
-
-// <h2>🏆 Competitive Advantage</h2>
-// <ul>
-//   <li>⭐ Unique selling points</li>
-//   <li>🎯 Market differentiation</li>
-//   <li>🛡️ Barriers to entry</li>
-// </ul>
-
-// <h2>⚠️ Implementation Challenges</h2>
-// <ul>
-//   <li>🔧 Technical challenges</li>
-//   <li>🌊 Market challenges</li>
-//   <li>📦 Resource requirements</li>
-// </ul>
-
-// <h2>📈 Success Metrics</h2>
-// <ul>
-//   <li>📊 Key performance indicators</li>
-//   <li>🎯 Growth targets</li>
-//   <li>🏆 Milestones</li>
-// </ul>
-
-// <h2>📋 Next Steps</h2>
-// <ul>
-//   <li>⚡ Immediate actions</li>
-//   <li>🎯 Short-term goals</li>
-//   <li>🔮 Long-term vision</li>
-// </ul>
-
-// do not bound yourself just get best output results this is just demo but follow the formate according to the current situtuion for best results
-
-// Make the analysis detailed and practical, focusing on real-world implementation and market potential. Use proper HTML tags and formatting that is compatible with TipTap editor. Keep the points concise and impactful.`;
+export const apikey = process.env.NEXT_PUBLIC_API_KEY ?? "";
+const genAI = new GoogleGenerativeAI(apikey);
 
 const IDEA_GENERATION_PROMPT = `You are an expert idea generator, business consultant, and product strategist. Based on the provided area and subcategory, generate an original, innovative, and practical business idea that has strong real-world potential.
 

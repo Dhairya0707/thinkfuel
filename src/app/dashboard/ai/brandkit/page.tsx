@@ -53,9 +53,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { apikey } from "@/app/Utils/gemini";
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI("AIzaSyDMVDpZW6ytIFHfr-BCET7JQvWcs6ETDyI");
+const genAI = new GoogleGenerativeAI(apikey);
 
 interface Idea {
   id: string;

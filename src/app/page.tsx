@@ -1,135 +1,316 @@
 "use client";
-
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import {
-  ArrowRight,
+  Lightbulb,
   Brain,
-  Globe,
-  Lock,
-  Search,
+  LockIcon,
+  Share2,
+  ArrowRight,
+  CheckCircle2,
   Menu,
   X,
-  ChevronRight,
-  Mail,
-  Lightbulb,
-  PenTool,
-  Share2,
-  Zap,
-  Sparkles,
-  Rocket,
-  Code,
-  Palette,
+  ChevronDown,
   Star,
-  CheckCircle2,
+  MessageCircle,
+  Mail,
+  HelpCircle,
+  Plus,
   ArrowUpRight,
-  BookOpen,
-  FileText,
-  Layers,
-  BarChart3,
+  Sparkles,
 } from "lucide-react";
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../service/firebase.config";
+import { toast } from "sonner";
 
-export default function LandingPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [count, setCount] = useState(0);
+// Gradient cursor effect component
+const GradientCursor = () => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCount((prev) => (prev < 100 ? prev + 1 : prev));
-    }, 20);
-    return () => clearInterval(interval);
+    const updateMousePosition = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener("mousemove", updateMousePosition);
+
+    return () => {
+      window.removeEventListener("mousemove", updateMousePosition);
+    };
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Link
-                href="/"
-                className="text-2xl font-bold text-indigo-600 dark:text-indigo-400"
-              >
+    <div
+      className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+      style={{
+        background: `radial-gradient(600px at ${position.x}px ${position.y}px, rgba(120, 119, 198, 0.05), transparent 80%)`,
+      }}
+    />
+  );
+};
+
+// Button component
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  variant?: "primary" | "secondary" | "outline" | "ghost";
+  size?: "sm" | "default" | "lg";
+  className?: string;
+}
+
+const Button = ({
+  children,
+  variant = "primary",
+  size = "default",
+  className = "",
+  ...props
+}: ButtonProps) => {
+  const baseClasses =
+    "font-medium rounded-full transition-all duration-200 inline-flex items-center justify-center";
+
+  const variantClasses: Record<string, string> = {
+    primary:
+      "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-indigo-500/25",
+    secondary:
+      "bg-white hover:bg-gray-50 text-indigo-600 border border-gray-200",
+    outline:
+      "bg-transparent hover:bg-indigo-50 text-indigo-600 border border-indigo-200 hover:border-indigo-300",
+    ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
+  };
+
+  const sizeClasses: Record<string, string> = {
+    sm: "text-sm px-4 py-2",
+    default: "px-6 py-3",
+    lg: "text-lg px-8 py-4",
+  };
+
+  return (
+    <button
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+// FAQ Accordion Item Component
+interface FAQItemProps {
+  question: string;
+  answer: string;
+}
+
+const FAQItem = ({ question, answer }: FAQItemProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border-b border-gray-200 dark:border-gray-800">
+      <button
+        className="flex w-full justify-between items-center py-4 text-left font-medium text-gray-900 dark:text-white"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>{question}</span>
+        <ChevronDown
+          className={`w-5 h-5 transition-transform ${
+            isOpen ? "transform rotate-180" : ""
+          }`}
+        />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          isOpen ? "max-h-96 pb-4" : "max-h-0"
+        }`}
+      >
+        <p className="text-gray-600 dark:text-gray-300">{answer}</p>
+      </div>
+    </div>
+  );
+};
+
+// Feature card component
+interface FeatureCardProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}
+
+const FeatureCard = ({ icon: Icon, title, description }: FeatureCardProps) => (
+  <div className="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-xl shadow-gray-100/20 dark:shadow-none border border-gray-100 dark:border-gray-700 hover:border-indigo-100 dark:hover:border-indigo-900 transition-all duration-300 group">
+    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 mb-5 group-hover:scale-110 transition-transform duration-300">
+      <Icon className="h-6 w-6" />
+    </div>
+    <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">
+      {title}
+    </h3>
+    <p className="text-gray-600 dark:text-gray-300">{description}</p>
+  </div>
+);
+
+// Testimonial card component
+interface TestimonialCardProps {
+  avatar: string;
+  name: string;
+  role: string;
+  testimonial: string;
+}
+
+const TestimonialCard = ({
+  avatar,
+  name,
+  role,
+  testimonial,
+}: TestimonialCardProps) => (
+  <div className="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-xl shadow-gray-100/20 dark:shadow-none border border-gray-100 dark:border-gray-700 hover:border-indigo-100 dark:hover:border-indigo-900 transition-all duration-300">
+    <div className="flex items-center mb-4">
+      <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium">
+        {avatar}
+      </div>
+      <div className="ml-3">
+        <h4 className="font-semibold text-gray-900 dark:text-white">{name}</h4>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{role}</p>
+      </div>
+    </div>
+    <div className="mb-3">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className="w-4 h-4 inline-block text-yellow-400"
+          fill="#FBBF24"
+        />
+      ))}
+    </div>
+    <p className="text-gray-600 dark:text-gray-300 italic">{testimonial}</p>
+  </div>
+);
+
+export default function ThinkFuelLanding() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const loginpage = () => {};
+  const signuppage = () => {};
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "subscribers"), {
+        email,
+        subscribedAt: serverTimestamp(),
+      });
+
+      toast.success("Thank you for subscribing!");
+      setEmail("");
+    } catch (error) {
+      console.error("Error adding subscriber:", error);
+      toast.error("Failed to subscribe. Please try again.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
+      <GradientCursor />
+
+      {/* Header + Navbar */}
+      <nav className="fixed w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white">
+                <Lightbulb className="h-5 w-5" />
+              </span>
+              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
                 ThinkFuel
-              </Link>
+              </span>
             </div>
 
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link
+              <a
                 href="#features"
-                className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium"
               >
                 Features
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              </a>
+              <a
+                href="#pricing"
+                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium"
               >
-                How It Works
-              </Link>
-              <div className="flex items-center space-x-4">
-                <Link href="/login">
-                  <Button
-                    variant="ghost"
-                    className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
+                Pricing
+              </a>
+              <a
+                href="#testimonials"
+                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium"
+              >
+                Testimonials
+              </a>
+              <a
+                href="#faq"
+                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium"
+              >
+                FAQ
+              </a>
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden text-gray-600 dark:text-gray-300"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
+            <div className="hidden md:flex items-center space-x-4">
+              <Button variant="outline" onClick={signuppage}>
+                Sign In
+              </Button>
+              <Button onClick={loginpage}>Get Started</Button>
+            </div>
+
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="text-gray-700 dark:text-gray-300"
+              >
+                {isMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden py-4 space-y-4">
-              <Link
+            <div className="md:hidden py-4 space-y-3">
+              <a
                 href="#features"
-                className="block text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+                className="block text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium py-2"
               >
                 Features
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="block text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              </a>
+              <a
+                href="#pricing"
+                onClick={() => setIsMenuOpen(false)}
+                className="block text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium py-2"
               >
-                How It Works
-              </Link>
-              <div className="flex flex-col space-y-2">
-                <Link href="/login">
-                  <Button
-                    variant="ghost"
-                    className="w-full text-gray-600 dark:text-gray-300"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-                    Get Started
-                  </Button>
-                </Link>
+                Pricing
+              </a>
+              <a
+                href="#testimonials"
+                onClick={() => setIsMenuOpen(false)}
+                className="block text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium py-2"
+              >
+                Testimonials
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setIsMenuOpen(false)}
+                className="block text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 font-medium py-2"
+              >
+                FAQ
+              </a>
+              <div className="pt-3 space-y-3">
+                <Button variant="outline" className="w-full">
+                  Sign In
+                </Button>
+                <Button className="w-full">Get Started</Button>
               </div>
             </div>
           )}
@@ -137,608 +318,485 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-32 pb-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-transparent to-purple-100/50 dark:from-indigo-900/20 dark:via-transparent dark:to-purple-900/20" />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="container mx-auto px-4 relative"
-        >
-          <div className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white">
-              Capture & Share Your Ideas
+      <section className="pt-40 pb-24 relative">
+        {/* Abstract Shapes */}
+        <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-br from-indigo-50 via-transparent to-purple-50 dark:from-indigo-950/40 dark:via-transparent dark:to-purple-950/40" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-200/30 dark:bg-indigo-900/10 blur-3xl" />
+        <div className="absolute  top-20 right-0 w-80 h-80 rounded-full bg-purple-200/30 dark:bg-purple-900/10 blur-3xl" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              Transform Your Ideas Into Reality
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl">
-              A modern platform for organizing your thoughts and turning ideas
-              into reality.
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto">
+              The all-in-one platform for capturing, organizing, and developing
+              your ideas with
+              <span className="relative whitespace-nowrap mx-1">
+                <span className="relative z-10">AI-powered assistance</span>
+                <span className="absolute bottom-0 left-0 right-0 h-3 bg-indigo-200/50 dark:bg-indigo-900/50 -z-10 transform -rotate-1"></span>
+              </span>
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/signup">
-                <Button
-                  size="lg"
-                  className="gap-2 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                  Start Creating <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="#features">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400"
-                >
-                  Explore Features
-                </Button>
-              </Link>
+            <div className="flex flex-col  sm:flex-row gap-4 justify-center">
+              <Button size="lg" onClick={loginpage}>
+                Start Your Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button variant="secondary" size="lg">
+                <a href="#how-it-works" className="flex flex-row">
+                  See How It Works <ArrowUpRight className="ml-2 h-5 w-5" />
+                </a>
+              </Button>
+            </div>
+            <div className="mt-10 text-gray-500 dark:text-gray-400 flex items-center justify-center space-x-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <span>No credit card required</span>
+              <span className="mx-2">•</span>
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <span>14-day free trial</span>
+              <span className="mx-2">•</span>
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <span>Cancel anytime</span>
             </div>
           </div>
-        </motion.div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <div className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1 }}
-                >
-                  100+
-                </motion.span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300">Active Users</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <div className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1, delay: 0.2 }}
-                >
-                  500+
-                </motion.span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300">Ideas Shared</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <div className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1, delay: 0.4 }}
-                >
-                  50+
-                </motion.span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300">Daily Active</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <div className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1, delay: 0.6 }}
-                >
-                  24/7
-                </motion.span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300">Support</p>
-            </motion.div>
+          <div className="mt-16 relative">
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-50 dark:from-gray-950 to-transparent z-10  bottom-0"></div>
+            <div className="relative z-0 rounded-2xl overflow-hidden shadow-2xl shadow-indigo-500/10 border border-gray-200 dark:border-gray-800">
+              <img
+                src="dashboard2.png"
+                alt="ThinkFuel Platform Dashboard"
+                className="w-full h-auto object-cover"
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              How ThinkFuel Works
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Simple steps to get started with your idea management
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <StepCard
-                number="01"
-                title="Capture Your Ideas"
-                description="Quickly jot down your thoughts, organize them with tags, and keep everything in one place."
-                icon={<PenTool className="h-6 w-6" />}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              viewport={{ once: true }}
-            >
-              <StepCard
-                number="02"
-                title="Organize & Develop"
-                description="Use our intuitive tools to structure your ideas and develop them further."
-                icon={<Lightbulb className="h-6 w-6" />}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <StepCard
-                number="03"
-                title="Share Your Ideas"
-                description="Share your ideas with the world through our publishing platform."
-                icon={<Share2 className="h-6 w-6" />}
-              />
-            </motion.div>
+      {/* Social Proof */}
+      <section className="py-12 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-gray-600 dark:text-gray-400 font-medium mb-8">
+            Trusted by innovative teams worldwide
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
+            {[
+              "TechFlow Solutions",
+              "InnovateLabs",
+              "FutureWave Tech",
+              "SmartMind Systems",
+              "CreativeSpark",
+            ].map((company) => (
+              <div
+                key={company}
+                className="h-8 text-gray-400 dark:text-gray-600 font-semibold text-xl opacity-80 hover:opacity-100 transition-opacity"
+              >
+                {company}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50 dark:bg-gray-950">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Powerful Features
+      <section id="features" className="py-24 relative">
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-indigo-200/30 dark:bg-indigo-900/10 blur-3xl" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              Powerful Features for Ideas Management
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Everything you need to manage your ideas effectively
+              Everything you need to capture, organize, and develop your ideas
+              in one place
             </p>
-          </motion.div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <FeatureCard
-                icon={<Brain className="h-6 w-6" />}
-                title="Smart Organization"
-                description="Organize your ideas with tags, categories, and smart search functionality."
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              viewport={{ once: true }}
-            >
-              <FeatureCard
-                icon={<Lock className="h-6 w-6" />}
-                title="Privacy Control"
-                description="Choose who can see your ideas with flexible privacy settings."
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              viewport={{ once: true }}
-            >
-              <FeatureCard
-                icon={<Search className="h-6 w-6" />}
-                title="Quick Search"
-                description="Find any idea instantly with our powerful search capabilities."
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              viewport={{ once: true }}
-            >
-              <FeatureCard
-                icon={<Globe className="h-6 w-6" />}
-                title="Public Sharing"
-                description="Share your ideas with the world through our publishing platform."
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <FeatureCard
-                icon={<Zap className="h-6 w-6" />}
-                title="Quick Capture"
-                description="Capture ideas instantly with our fast and intuitive interface."
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-              viewport={{ once: true }}
-            >
-              <FeatureCard
-                icon={<Sparkles className="h-6 w-6" />}
-                title="Modern Interface"
-                description="Enjoy a beautiful, intuitive interface designed for productivity."
-              />
-            </motion.div>
+            <FeatureCard
+              icon={Brain}
+              title="AI Idea Generator"
+              description="Generate innovative ideas with our advanced AI system that understands your context and goals."
+            />
+            <FeatureCard
+              icon={Sparkles}
+              title="Rich Text Editor"
+              description="Powerful rich text editor with formatting, media embedding, and real-time collaboration."
+            />
+            <FeatureCard
+              icon={LockIcon}
+              title="AI Potential Checker"
+              description="Evaluate your ideas' potential with AI-powered market analysis and feasibility assessment."
+            />
+            <FeatureCard
+              icon={Share2}
+              title="AI Market Research"
+              description="Get instant market insights, competitor analysis, and trend predictions for your ideas."
+            />
+            <FeatureCard
+              icon={Plus}
+              title="AI Idea Chat"
+              description="Have natural conversations with AI about your ideas to refine and develop them further."
+            />
+            <FeatureCard
+              icon={ArrowUpRight}
+              title="AI Brand Kit Maker"
+              description="Automatically generate brand identities, logos, and style guides for your ideas."
+            />
           </div>
         </div>
       </section>
 
-      {/* Detailed Features Section */}
-      <section className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Everything You Need
+      {/* How it Works */}
+      <section
+        id="how-it-works"
+        className="py-24 bg-white dark:bg-gray-900 relative"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              How ThinkFuel Works
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Powerful tools to help you manage and develop your ideas
+              A simple yet powerful workflow to help you bring your ideas to
+              life
             </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900">
-                  <BookOpen className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    Rich Text Editor
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Format your ideas with our powerful rich text editor. Add
-                    headings, lists, code blocks, and more.
-                  </p>
-                </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 mb-6 text-xl font-bold">
+                1
               </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900">
-                  <Layers className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    Organization Tools
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Keep your ideas organized with tags, categories, and custom
-                    folders.
-                  </p>
-                </div>
+              <h3 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
+                Capture & Generate
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Use our AI-powered tools to capture existing ideas or generate
+                new ones with our advanced AI system.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 mb-6 text-xl font-bold">
+                2
               </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900">
-                  <BarChart3 className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    Analytics Dashboard
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Track your idea development with detailed analytics and
-                    insights.
-                  </p>
-                </div>
+              <h3 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
+                Develop & Research
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Refine your ideas with AI assistance, conduct market research,
+                and evaluate potential with our tools.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 mb-6 text-xl font-bold">
+                3
               </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900">
-                  <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    Export Options
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Export your ideas in multiple formats including PDF,
-                    Markdown, and more.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+              <h3 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
+                Execute & Brand
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Create brand identities, export your ideas, and prepare them for
+                implementation with our comprehensive toolkit.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-950">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+      {/* Testimonials */}
+      <section id="testimonials" className="py-24 relative">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-purple-200/30 dark:bg-purple-900/10 blur-3xl" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
               What Our Users Say
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Join thousands of satisfied users who trust ThinkFuel
+              Join thousands of creative thinkers who are already using
+              ThinkFuel
             </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-            >
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-5 w-5 text-yellow-400 fill-yellow-400"
-                  />
-                ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <TestimonialCard
+              avatar="JD"
+              name="John Doe"
+              role="Product Designer"
+              testimonial="ThinkFuel has revolutionized how I manage my design ideas. The AI features are incredibly helpful for expanding on my initial concepts."
+            />
+            <TestimonialCard
+              avatar="SL"
+              name="Sarah Lin"
+              role="Entrepreneur"
+              testimonial="As a startup founder, I'm constantly juggling dozens of ideas. ThinkFuel helps me keep everything organized and prioritized."
+            />
+            <TestimonialCard
+              avatar="MR"
+              name="Michael Rodriguez"
+              role="Creative Director"
+              testimonial="The collaboration features allow my team to build on each other's ideas seamlessly. It's become an essential part of our creative process."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              During our testing phase, all users get access to our Pro plan
+              features for free!
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 overflow-hidden shadow-xl shadow-indigo-500/25">
+              <div className="p-8">
+                <h3 className="text-lg font-medium text-indigo-100 mb-2">
+                  Pro Plan
+                </h3>
+                <div className="flex items-baseline mb-6">
+                  <span className="text-5xl font-bold text-white">$0</span>
+                  <span className="text-indigo-200 ml-2">/month</span>
+                </div>
+                <p className="text-indigo-100 mb-6">
+                  Unlock the full potential of ThinkFuel with all premium
+                  features.
+                </p>
+                <Button
+                  variant="secondary"
+                  onClick={signuppage}
+                  className="w-full mb-6 bg-white text-indigo-600 hover:bg-gray-100"
+                >
+                  Start Free Trial
+                </Button>
+                <ul className="space-y-4">
+                  <li className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-200 mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-white">AI Idea Generation</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-200 mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-white">Rich Text Editor</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-200 mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-white">AI Market Research</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-200 mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-white">AI Brand Kit Maker</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-200 mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-white">
+                      Export to Multiple Formats
+                    </span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-200 mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-white">Priority Support</span>
+                  </li>
+                </ul>
               </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                "ThinkFuel has completely transformed how I organize my ideas.
-                The interface is intuitive and the features are exactly what I
-                needed."
-              </p>
-              <div className="font-semibold text-gray-900 dark:text-white">
-                Sarah Johnson
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Product Designer
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-            >
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-5 w-5 text-yellow-400 fill-yellow-400"
-                  />
-                ))}
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                "The best platform for idea management I've used. The search
-                functionality is incredibly powerful and the UI is beautiful."
-              </p>
-              <div className="font-semibold text-gray-900 dark:text-white">
-                Michael Chen
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Software Developer
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-            >
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-5 w-5 text-yellow-400 fill-yellow-400"
-                  />
-                ))}
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                "I love how easy it is to capture and organize my thoughts. The
-                privacy features give me peace of mind."
-              </p>
-              <div className="font-semibold text-gray-900 dark:text-white">
-                Emily Rodriguez
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Content Creator
-              </div>
-            </motion.div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-24">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">
+              Everything you need to know about ThinkFuel
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <FAQItem
+              question="What is ThinkFuel?"
+              answer="ThinkFuel is an AI-powered platform for capturing, organizing, and developing ideas. It combines modern web technologies with artificial intelligence to help individuals and teams manage their creative process."
+            />
+            <FAQItem
+              question="How does the AI feature work?"
+              answer="Our AI analyzes your ideas and provides suggestions, improvements, and related concepts based on your input. It uses natural language processing and machine learning to understand the context of your ideas and generate relevant recommendations."
+            />
+            <FAQItem
+              question="Can I use ThinkFuel with my team?"
+              answer="Absolutely! ThinkFuel offers robust collaboration features that allow you to share ideas with team members, assign permissions, and work together in real-time. The Pro plan includes advanced collaboration tools designed specifically for teams."
+            />
+            <FAQItem
+              question="Is my data secure?"
+              answer="Yes, we take security very seriously. ThinkFuel uses enterprise-grade encryption to protect your data, and we never share your ideas with third parties. All data is stored in secure cloud environments with regular backups."
+            />
+            <FAQItem
+              question="Can I export my ideas?"
+              answer="Yes, ThinkFuel allows you to export your ideas in multiple formats including PDF, Markdown, and plain text. This makes it easy to use your ideas in other tools or share them with people who don't use ThinkFuel."
+            />
+            <FAQItem
+              question="What if I need help?"
+              answer="We offer comprehensive support through our help center, email support, and live chat. Pro users get priority support with faster response times."
+            />
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
+      <section className="py-24 bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Fuel Your Next Big Idea?
+          </h2>
+          <p className="text-xl mb-10 max-w-2xl mx-auto opacity-90">
+            Join ThinkFuel today and experience the future of idea management.
+            Get started with our free trial and unlock your creative potential.
+          </p>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={signuppage}
+            className="bg-white text-indigo-600 hover:bg-gray-100 shadow-lg"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-              Start Managing Your Ideas Today
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join our community of creators and innovators. Start organizing
-              your ideas in minutes.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/signup">
-                <Button
-                  size="lg"
-                  className="gap-2 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                  Create Free Account <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400"
-                >
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
+            Start Your Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col items-center text-center space-y-8">
-            <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                ThinkFuel
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 max-w-md">
-                Your platform for capturing, organizing, and sharing ideas.
-                Built with passion for creators and innovators.
-              </p>
-              <div className="flex justify-center space-x-4">
-                <Link
-                  href="mailto:contact@thinkfuel.com"
-                  className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-                >
-                  <Mail className="h-5 w-5" />
-                </Link>
+      <footer className="bg-gray-100 dark:bg-gray-900 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {/* Column 1: Brand & About */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  ThinkFuel
+                </span>
               </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Transforming ideas into reality with AI-powered assistance.
+              </p>
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              © 2024 ThinkFuel. All rights reserved.
+            {/* Column 2: Product */}
+            <div>
+              <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Product
+              </h5>
+              <ul className="space-y-2">
+                <li>
+                  <a
+                    href="#features"
+                    className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm"
+                  >
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#pricing"
+                    className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm"
+                  >
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#how-it-works"
+                    className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm"
+                  >
+                    How It Works
+                  </a>
+                </li>
+              </ul>
+            </div>
+            {/* Column 3: Contact */}
+            <div>
+              <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Contact Us
+              </h5>
+              <ul className="space-y-2">
+                <li>
+                  <a
+                    href="mailto:dhairyadarji025@gmail.com"
+                    className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm flex items-center"
+                  >
+                    <Mail className="h-4 w-4 mr-2" /> dhairyadarji025@gmail.com
+                  </a>
+                </li>
+                {/* <li>
+                  <a
+                    href="tel:+1234567890"
+                    className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm flex items-center"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" /> +1 (234) 567-890
+                  </a>
+                </li> */}
+                {/* <li>
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm flex items-center"
+                  >
+                    <HelpCircle className="h-4 w-4 mr-2" /> Support Center
+                  </a>
+                </li> */}
+              </ul>
+            </div>
+            {/* Column 4: Newsletter */}
+            <div>
+              <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Stay Updated
+              </h5>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Subscribe to our newsletter for the latest updates and features.
+              </p>
+              <form className="space-y-2" onSubmit={handleSubscribe}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <Button type="submit" className="w-full">
+                  Subscribe
+                </Button>
+              </form>
+            </div>
+          </div>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 md:mb-0">
+              © {new Date().getFullYear()} ThinkFuel. All rights reserved.
+            </p>
+            <div className="flex space-x-4">
+              <a
+                href="#"
+                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm"
+              >
+                Privacy Policy
+              </a>
+              <a
+                href="#"
+                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 text-sm"
+              >
+                Terms of Service
+              </a>
             </div>
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300 hover:border-indigo-200 dark:hover:border-indigo-800 group">
-      <div className="mb-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
-        {icon}
-      </div>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {title}
-      </h3>
-      <p className="text-gray-600 dark:text-gray-300">{description}</p>
-    </div>
-  );
-}
-
-function StepCard({
-  number,
-  title,
-  description,
-  icon,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 group hover:shadow-md transition-all duration-300">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
-          {number}
-        </div>
-        <div className="text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
-          {icon}
-        </div>
-      </div>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {title}
-      </h3>
-      <p className="text-gray-600 dark:text-gray-300">{description}</p>
     </div>
   );
 }

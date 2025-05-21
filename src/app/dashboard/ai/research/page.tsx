@@ -34,9 +34,10 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { apikey } from "@/app/Utils/gemini";
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI("AIzaSyDMVDpZW6ytIFHfr-BCET7JQvWcs6ETDyI");
+const genAI = new GoogleGenerativeAI(apikey);
 
 interface MarketResearchResult {
   marketOverview: {

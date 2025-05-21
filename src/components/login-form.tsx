@@ -52,7 +52,7 @@ export function LoginForm({
       });
       setLoading(false);
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (error: any) {
       setLoading(false);
       console.error("Error logging in:", error);
