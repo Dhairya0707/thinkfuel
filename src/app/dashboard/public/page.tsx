@@ -144,7 +144,7 @@ export default function PublicPage() {
   }, []);
 
   const handleIdeaClick = (id: string) => {
-    router.push(`/dashboard/share/${id}`);
+    router.push(`/share/${id}`);
   };
 
   const filteredIdeas = publicIdeas.filter((idea) => {
