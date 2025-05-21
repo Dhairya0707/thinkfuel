@@ -20,7 +20,6 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../service/firebase.config";
 import { toast } from "sonner";
 
-// Gradient cursor effect component
 const GradientCursor = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
